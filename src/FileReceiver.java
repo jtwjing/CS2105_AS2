@@ -28,6 +28,7 @@ public class FileReceiver {
 	private static int rcvSeqNum;
 	private static int rcvLen;
 	private static byte[] data;
+	private static int seqNum;
 	
 	public static void main(String[] args) throws Exception {
 		
@@ -42,6 +43,7 @@ public class FileReceiver {
 		receiveData = new byte[PACKET_SIZE];
 		dest = null;
 		toFile = null;
+		seqNum = -1;
 		
 		while(true){
 		
@@ -108,7 +110,7 @@ public class FileReceiver {
 				if(rcvSeqNum == -1){
 					response = "END";
 				} else {
-					response = "ACK" + rcvSeqNum;
+					response = "ACK\n" + rcvSeqNum;
 				}
 				
 			} else {
@@ -116,34 +118,36 @@ public class FileReceiver {
 				//temp, may want to implement buffer to replace in future
 			}
 			
-			System.out.println("Sending response: " + response);
 			sendData = response.getBytes();
 			ack = addHeader(sendData);
+			System.out.println("Sending response: " + new String(ack.getData()));
 			receiverSocket.send(ack);
 			
 			//---------------			Writing       ---------------------//
 			//getting data
 			
-			if(toACK){
+			//prevent rewriting of same packet
+			if(toACK && seqNum != rcvSeqNum){
 				data = new byte[rcvLen];
 				System.arraycopy(receiveData, splitter + 2, data, 0, rcvLen);
 				
-				message = new String(data);								//log
+				message = new String(data);								
 				System.out.println("Received packet " + rcvSeqNum);
-				System.out.println("Received msg: " + message); 		//log
+//				System.out.println("Received msg: " + message); 		//log
 				
 				if(rcvSeqNum == -1){
 					System.out.println("End writing to " + dest.getName());
 					toFile.close();
 				} else if(rcvSeqNum == 0) {	
-					//get the first entry (fileName)
+						//get the first entry (fileName)
 						dest = new File(message.trim());
 						toFile = new BufferedOutputStream(new FileOutputStream(dest));
 				} else {
-					System.out.println("Writing: " + message);
+//					System.out.println("Writing: " + message);			//log
 					toFile.write(data, 0, rcvLen);
 					toFile.flush();
 				}
+				seqNum = rcvSeqNum;
 			}
 		
 			//Clearing current contents
