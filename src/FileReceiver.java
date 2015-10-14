@@ -29,6 +29,7 @@ public class FileReceiver {
 	private static int rcvLen;
 	private static byte[] data;
 	private static int seqNum;
+	private static boolean closed;
 	
 	public static void main(String[] args) throws Exception {
 		
@@ -44,6 +45,7 @@ public class FileReceiver {
 		dest = null;
 		toFile = null;
 		seqNum = -1;
+		closed = false;
 		
 		while(true){
 		
@@ -139,6 +141,7 @@ public class FileReceiver {
 //				System.out.println("Received msg: " + message); 		//log
 				
 				if(rcvSeqNum == 0) {	
+						closed = false;
 						//get the first entry (fileName)
 						dest = new File(message.trim());
 						toFile = new BufferedOutputStream(new FileOutputStream(dest));
@@ -150,10 +153,11 @@ public class FileReceiver {
 				}
 				seqNum = rcvSeqNum;
 			}
-			if(toACK && rcvSeqNum == -1){
+			if(toACK && rcvSeqNum == -1 && !closed){
 				System.out.println("---- End writing to " + dest.getName() + " ----");		//
 				toFile.close();
 				seqNum = rcvSeqNum;
+				closed = true;
 			}
 		
 			//Clearing current contents

@@ -123,7 +123,7 @@ public class FileSender {
 			//get the response from receiver
 			ack = new DatagramPacket(receiveData, receiveData.length);
 			try {
-				senderSocket.setSoTimeout(1);
+				senderSocket.setSoTimeout(100);
 				senderSocket.receive(ack);
 				System.out.println("From Receiver: " + new String(ack.getData()));		//
 				String[] ackMessage = new String(ack.getData()).split("\n");
