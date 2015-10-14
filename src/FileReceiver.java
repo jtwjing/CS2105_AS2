@@ -91,6 +91,9 @@ public class FileReceiver {
 					System.out.println("CAL: " + calChksum);
 					System.out.println("RCV: " + rcvChksum);
 					
+					System.out.println("rcvSeqNum: " + rcvSeqNum);
+					System.out.println("seqNum: " + seqNum);
+					
 					if(calChksum == rcvChksum){
 						toACK = true;
 					}
@@ -135,18 +138,21 @@ public class FileReceiver {
 				System.out.println("Received packet " + rcvSeqNum);
 //				System.out.println("Received msg: " + message); 		//log
 				
-				if(rcvSeqNum == -1){
-					System.out.println("End writing to " + dest.getName());
-					toFile.close();
-				} else if(rcvSeqNum == 0) {	
+				if(rcvSeqNum == 0) {	
 						//get the first entry (fileName)
 						dest = new File(message.trim());
 						toFile = new BufferedOutputStream(new FileOutputStream(dest));
+						System.out.println(" ---- Writing start ----");					//
 				} else {
-//					System.out.println("Writing: " + message);			//log
+					System.out.println("Writing...");			//log
 					toFile.write(data, 0, rcvLen);
 					toFile.flush();
 				}
+				seqNum = rcvSeqNum;
+			}
+			if(toACK && rcvSeqNum == -1){
+				System.out.println("---- End writing to " + dest.getName() + " ----");		//
+				toFile.close();
 				seqNum = rcvSeqNum;
 			}
 		
