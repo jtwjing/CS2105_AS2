@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 
@@ -28,6 +29,8 @@ public class FileSender {
 	private static byte[] byteToCheck; 
 	
 	public static void main(String[] args) throws Exception {
+		
+		long startTime = System.nanoTime();
 		
 		if (args.length != 4) {
 			System.err.println("Usage: FileSender <host> <port> <sourceFile> <destFile>");
@@ -107,6 +110,8 @@ public class FileSender {
 		//
 		
 		senderSocket.close();
+		long endTime = System.nanoTime();
+		System.out.println("SENDING TOOK " +(endTime-startTime) + "ns");
 		
 	}
 
@@ -116,46 +121,55 @@ public class FileSender {
 			
 			//get the response from receiver
 			ack = new DatagramPacket(receiveData, receiveData.length);
-			senderSocket.receive(ack);
-			System.out.println("From Receiver: " + new String(ack.getData()));		//
-			String[] ackMessage = new String(ack.getData()).split("\n");
 			try {
-				long rcvChksum = Long.parseLong(ackMessage[0]);
-				
-				//checking checksum
-				int chksumLen = ackMessage[0].length() + 1;
-				byteToCheck = new byte[ack.getLength() - chksumLen];
-				System.arraycopy(receiveData, chksumLen, byteToCheck, 0, ack.getLength() - chksumLen);
-				
-				CRC32 checksum = new CRC32();
-				checksum.update(byteToCheck);
-				long calChksum = checksum.getValue();
-				
-				System.out.println("CAL: " + calChksum);
-				System.out.println("RCV: " + rcvChksum);
-				
-				//checking correct seq num
-				int rcvSeqNum = Integer.parseInt(ackMessage[2].trim());
-				
-				System.out.println("rcvSeqNum: " + rcvSeqNum);
-				System.out.println("seqNum: " + seqNum);
-				
-				//check checksum and correct sequence number 
-				if(calChksum == rcvChksum && seqNum == rcvSeqNum){
-					ackLast = true;
-				} else {
+				senderSocket.setSoTimeout(1);
+				senderSocket.receive(ack);
+				System.out.println("From Receiver: " + new String(ack.getData()));		//
+				String[] ackMessage = new String(ack.getData()).split("\n");
+				try {
+					long rcvChksum = Long.parseLong(ackMessage[0]);
+					
+					//checking checksum
+					int chksumLen = ackMessage[0].length() + 1;
+					byteToCheck = new byte[ack.getLength() - chksumLen];
+					System.arraycopy(receiveData, chksumLen, byteToCheck, 0, ack.getLength() - chksumLen);
+					
+					CRC32 checksum = new CRC32();
+					checksum.update(byteToCheck);
+					long calChksum = checksum.getValue();
+					
+					System.out.println("CAL: " + calChksum);
+					System.out.println("RCV: " + rcvChksum);
+					
+					//checking correct seq num
+					int rcvSeqNum = Integer.parseInt(ackMessage[2].trim());
+					
+					System.out.println("rcvSeqNum: " + rcvSeqNum);
+					System.out.println("seqNum: " + seqNum);
+					
+					//check checksum and correct sequence number 
+					if(calChksum == rcvChksum && seqNum == rcvSeqNum){
+						ackLast = true;
+					} else {
+						System.out.println("--- Resending ---");					//
+//						System.out.println(new String(toSend.getData()));			//
+						senderSocket.send(toSend);
+						System.out.println("--- Resending End ---");				//
+					}
+					
+					//clearing current content
+					receiveData = new byte[PACKET_DATA_SIZE];
+				} catch (Exception e){
+					//if cannot parse the checksum means corrupted therefore re-send
 					System.out.println("--- Resending ---");					//
-					System.out.println(new String(toSend.getData()));			//
+//					System.out.println(new String(toSend.getData()));			//
 					senderSocket.send(toSend);
+					
 					System.out.println("--- Resending End ---");				//
 				}
-				
-				//clearing current content
-				receiveData = new byte[PACKET_DATA_SIZE];
-			} catch (Exception e){
-				//if cannot parse the checksum means corrupted therefore re-send
+			} catch (SocketTimeoutException e){
 				System.out.println("--- Resending ---");					//
-				System.out.println(new String(toSend.getData()));			//
+//				System.out.println(new String(toSend.getData()));			//
 				senderSocket.send(toSend);
 				
 				System.out.println("--- Resending End ---");				//

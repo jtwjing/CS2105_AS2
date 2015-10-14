@@ -127,7 +127,7 @@ public class FileReceiver {
 			//getting data
 			
 			//prevent rewriting of same packet
-			if(toACK && seqNum != rcvSeqNum){
+			if(toACK && seqNum < rcvSeqNum){
 				data = new byte[rcvLen];
 				System.arraycopy(receiveData, splitter + 2, data, 0, rcvLen);
 				
