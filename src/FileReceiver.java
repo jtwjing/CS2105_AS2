@@ -108,7 +108,7 @@ public class FileReceiver {
 			String response = "";
 			if(toACK){
 				if(rcvSeqNum == -1){
-					response = "END";
+					response = "END\n" + rcvSeqNum;
 				} else {
 					response = "ACK\n" + rcvSeqNum;
 				}

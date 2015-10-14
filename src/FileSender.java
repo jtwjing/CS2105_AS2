@@ -94,7 +94,8 @@ public class FileSender {
 		System.out.println("Sending terminating packet");
 		senderSocket.send(toSend);
 		
-		//change this
+		verifyReply();
+		/*change this
 		while(true){
 			ack = new DatagramPacket(receiveData, receiveData.length);
 			senderSocket.receive(ack);
@@ -107,7 +108,7 @@ public class FileSender {
 			//clearing current content
 			receiveData = new byte[PACKET_DATA_SIZE];
 		}
-		//
+		 */
 		
 		senderSocket.close();
 		long endTime = System.nanoTime();
@@ -151,28 +152,23 @@ public class FileSender {
 					if(calChksum == rcvChksum && seqNum == rcvSeqNum){
 						ackLast = true;
 					} else {
-						System.out.println("--- Resending ---");					//
+						System.out.println("--- Resending Checksum/SeqNum failed---");					//
 //						System.out.println(new String(toSend.getData()));			//
 						senderSocket.send(toSend);
-						System.out.println("--- Resending End ---");				//
 					}
 					
 					//clearing current content
 					receiveData = new byte[PACKET_DATA_SIZE];
 				} catch (Exception e){
 					//if cannot parse the checksum means corrupted therefore re-send
-					System.out.println("--- Resending ---");					//
+					System.out.println("--- Resending Wrong---");					//
 //					System.out.println(new String(toSend.getData()));			//
 					senderSocket.send(toSend);
-					
-					System.out.println("--- Resending End ---");				//
 				}
 			} catch (SocketTimeoutException e){
-				System.out.println("--- Resending ---");					//
+				System.out.println("--- Resending: Timeout ---");					//
 //				System.out.println(new String(toSend.getData()));			//
 				senderSocket.send(toSend);
-				
-				System.out.println("--- Resending End ---");				//
 			}
 		}
 	}
